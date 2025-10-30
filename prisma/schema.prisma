@@ -1,0 +1,179 @@
+// This is your Prisma schema file
+// for xGate Protocol - Pay-Per-Tool Gateway
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Price rules for each endpoint
+model PriceRule {
+  id          String   @id @default(cuid())
+  endpoint    String   @unique // e.g., "/tools/ocr", "/tools/vision"
+  name        String   // Human-readable name
+  description String?
+  
+  // Pricing configuration
+  priceUsd    Decimal  @db.Decimal(10, 6) // Fixed price in USD
+  pricingType String   @default("fixed") // "fixed", "metered", "tiered"
+  
+  // Metered pricing (per KB, per request, etc.)
+  meterUnit   String?  // "kb", "mb", "request", "token"
+  meterRate   Decimal? @db.Decimal(10, 6) // Price per unit
+  
+  // Configuration
+  enabled     Boolean  @default(true)
+  requireAuth Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  payments    Payment[]
+  
+  @@index([endpoint])
+  @@index([enabled])
+}
+
+// Payment records (x402 receipts)
+model Payment {
+  id            String   @id @default(cuid())
+  
+  // Payment details
+  txHash        String   @unique // Blockchain transaction hash
+  payer         String   // Wallet address
+  amount        Decimal  @db.Decimal(18, 6) // Amount in USDC
+  asset         String   @default("USDC")
+  chain         String   @default("base")
+  
+  // Request details
+  endpoint      String
+  priceRuleId   String?
+  priceRule     PriceRule? @relation(fields: [priceRuleId], references: [id])
+  
+  method        String   // HTTP method
+  requestSize   Int?     // Request size in bytes
+  responseSize  Int?     // Response size in bytes
+  
+  // Status tracking
+  status        String   @default("pending") // "pending", "verified", "completed", "refunded", "failed"
+  verifiedAt    DateTime?
+  completedAt   DateTime?
+  
+  // Metadata
+  userAgent     String?
+  ipAddress     String?
+  metadata      Json?    // Additional request metadata
+  
+  // Error tracking
+  errorMessage  String?
+  refundReason  String?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([txHash])
+  @@index([payer])
+  @@index([endpoint])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Usage tracking and analytics
+model UsageLog {
+  id           String   @id @default(cuid())
+  
+  endpoint     String
+  method       String
+  
+  // Payment info
+  paymentId    String?
+  payer        String?
+  amountUsd    Decimal? @db.Decimal(10, 6)
+  
+  // Performance metrics
+  duration     Int      // Response time in ms
+  statusCode   Int
+  requestSize  Int?
+  responseSize Int?
+  
+  // Metadata
+  userAgent    String?
+  ipAddress    String?
+  
+  createdAt    DateTime @default(now())
+  
+  @@index([endpoint])
+  @@index([createdAt])
+  @@index([payer])
+}
+
+// Developer API keys (optional, for authenticated access)
+model ApiKey {
+  id          String   @id @default(cuid())
+  
+  key         String   @unique // The API key hash
+  name        String   // Human-readable name
+  description String?
+  
+  // Permissions
+  enabled     Boolean  @default(true)
+  rateLimit   Int      @default(1000) // Requests per hour
+  
+  // Usage tracking
+  lastUsedAt  DateTime?
+  usageCount  Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([key])
+  @@index([enabled])
+}
+
+// Credit ledger for refunds and prepaid balance
+model CreditLedger {
+  id          String   @id @default(cuid())
+  
+  wallet      String   // User wallet address
+  balance     Decimal  @default(0) @db.Decimal(18, 6)
+  
+  // Audit trail
+  lastCreditAt DateTime?
+  lastDebitAt  DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  credits     Credit[]
+  
+  @@unique([wallet])
+  @@index([wallet])
+}
+
+// Individual credit transactions
+model Credit {
+  id              String        @id @default(cuid())
+  
+  ledgerId        String
+  ledger          CreditLedger  @relation(fields: [ledgerId], references: [id])
+  
+  type            String        // "refund", "topup", "spend"
+  amount          Decimal       @db.Decimal(18, 6)
+  balanceBefore   Decimal       @db.Decimal(18, 6)
+  balanceAfter    Decimal       @db.Decimal(18, 6)
+  
+  // Reference to original payment if refund
+  paymentId       String?
+  reason          String?
+  
+  createdAt       DateTime      @default(now())
+  
+  @@index([ledgerId])
+  @@index([createdAt])
+}
+
