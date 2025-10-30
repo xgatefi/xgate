@@ -365,13 +365,6 @@ Open an issue with:
 - **Alternatives**: Other approaches considered
 - **Examples**: Similar features elsewhere
 
-## 📞 Getting Help
-
-- **GitHub Issues**: Bug reports and features
-- **Discussions**: Questions and ideas
-- **Discord**: Real-time chat (coming soon)
-- **Email**: support@xgate.dev
-
 ## 🎉 Recognition
 
 Contributors will be:
