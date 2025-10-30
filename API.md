@@ -478,7 +478,6 @@ if response.status_code == 402:
 
 ## Support
 
-- GitHub: [github.com/xgate/xgate](https://github.com)
-- Documentation: [xgate.dev/docs](https://xgate.dev)
-- Discord: [discord.gg/xgate](https://discord.gg)
+- GitHub: [github.com/xgatefi/xgate](https://github.com)
+- Documentation: [xgate.dev/fi](https://xgate.fi)
 
