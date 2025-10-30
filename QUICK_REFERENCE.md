@@ -375,7 +375,7 @@ npx prisma migrate deploy
 ---
 
 **Quick Links**:
-- GitHub: [github.com/xgate](https://github.com)
-- Docs: [xgate.dev](https://xgate.dev)
+- GitHub: [github.com/xgatefi](https://github.com)
+- Docs: [xgate.fi](https://xgate.fi)
 - x402 Spec: [x402.org](https://x402.org)
 
